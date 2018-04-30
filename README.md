@@ -80,6 +80,8 @@ Resources:
               Value: !GetAtt MyService.Name
             - Name: CLUSTER
               Value: !Ref MyCluster
+            - Name: AWS_DEFAULT_REGION
+              Value: !Ref AWS::Region
 
 
 ```
