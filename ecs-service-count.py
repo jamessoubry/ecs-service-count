@@ -55,8 +55,8 @@ if __name__ == "__main__":
 
 	daemon = os.getenv('DAEMON', True)
 	interval = os.getenv('INTERVAL', 30)
-	cluster = os.getenv('CLUSTER', 'ecosystems-vegas-ci-develop-cluster')
-	service = os.getenv('SERVICE', 'ecosystems-vegas-ci-develop-cluster-mgmt-2')
+	cluster = os.getenv('CLUSTER', None)
+	service = os.getenv('SERVICE', None)
 
 	if daemon:
 		while True:
