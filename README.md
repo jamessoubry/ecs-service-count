@@ -29,6 +29,8 @@ Resources:
       ServiceName: !Sub '${AWS::StackName}-service-count'
       Cluster: !Ref MyCluster
       DesiredCount: 1
+      PlacementConstraints:
+        - Type: distinctInstance
       DeploymentConfiguration:
         MaximumPercent: 100
         MinimumHealthyPercent: 0
