@@ -1,5 +1,9 @@
 # ecs-service-count
-Docker container to adjust ECS service count to follow cluster instance count
+Docker container to adjust ECS service count to follow cluster instance count.
+
+this is a simpler solution to the following:
+  https://github.com/kgirthofer/service_shuffler
+  https://github.com/blox/blox/tree/master/daemon-scheduler
 
 Docker execution example:
 ```
