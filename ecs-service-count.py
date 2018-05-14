@@ -7,10 +7,10 @@ import requests
 
 
 def ecs_get_metadata(uri='http://172.17.0.1:51678/v1/metadata'):
-	return requests.get(uri)
+	return requests.get(uri).json()
 
 def ecs_get_identity(uri='http://169.254.169.254/latest/dynamic/instance-identity/document'):
-	return requests.get(uri)
+	return requests.get(uri).json()
 
 def ecs_service_update(cluster, service, region):
 
