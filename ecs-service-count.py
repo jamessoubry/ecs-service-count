@@ -3,10 +3,19 @@ import time
 import logging
 import boto3
 import os
+import requests
 
 
-def ecs_service_update(cluster, service):
+def ecs_get_metadata(uri='http://172.17.0.1:51678/v1/metadata'):
+	return requests.get(uri)
 
+def ecs_get_identity(uri='http://169.254.169.254/latest/dynamic/instance-identity/document'):
+	return requests.get(uri)
+
+def ecs_service_update(cluster, service, region):
+
+	if not region:
+		ecs = boto3.setup_default_session(region_name=ecs_get_identity().get('region'))
 
 	ecs = boto3.client('ecs')
 
@@ -33,7 +42,6 @@ def ecs_service_update(cluster, service):
 		logging.error("Could Not Get Service Count")
 		return False
 
-
 	logging.info("Service Count: {}".format(service_desired))
 
 	if service_desired != instance_count:
@@ -55,12 +63,15 @@ if __name__ == "__main__":
 
 	daemon = os.getenv('DAEMON', True)
 	interval = os.getenv('INTERVAL', 30)
-	cluster = os.getenv('CLUSTER', None)
+	region = os.getenv('AWS_DEFAULT_REGION', None)
+	
+	# if CLUSTER not provided get own cluster from metadata
+	cluster = os.getenv('CLUSTER', None) or ecs_get_metadata().get('Cluster')
 	service = os.getenv('SERVICE', None)
 
 	if daemon:
 		while True:
-			ecs_service_update(cluster, service)
+			ecs_service_update(cluster, service, region)
 			time.sleep(interval)
 	else:
-		ecs_service_update(cluster, service)
+		ecs_service_update(cluster, service, region)
