@@ -5,7 +5,46 @@ this is a simpler solution to the following:
   https://github.com/kgirthofer/service_shuffler
   https://github.com/blox/blox/tree/master/daemon-scheduler
 
-Docker execution example:
+## Env Variables
+* SERVICE - (required) The name of the ECS service to update.
+* CLUSTER - (optional) The Cluster to follow instance count. If omitted the service will attempt to resolve from the Cluster that the ECS task is running on.
+* AWS_DEFAULT_REGION - (optional) The Region of the Cluster. If omitted the service will attempt to resolve from to the Region that the ECS task is running on.
+* AWS_SECRET_ACCESS_KEY - if running on ECS this will be provided by the Service Role.
+* AWS_ACCESS_KEY_ID - if running on ECS this will be provided by the Service Role.
+
+* DAEMON - (optional) if you want to use CloudWatch Events to schedule this container then set this as False (Default: True)
+* INTERVAL - (optional) api poll interval, in seconds (Default: 30)
+* LOG_LEVEL - (optional) python log level e.g WARNING,CRITICAL,ERROR,INFO,DEBUG (Default: INFO)
+
+## Recomendations
+Use a placement constraints of  "distinctInstance" when launching your ECS service
+
+##IAM Policy
+The IAM Policy for the Service Role
+```
+{
+    "Statement": [
+        {
+            "Action": [
+                "ecs:DescribeClusters",
+                "ecs:DescribeServices"
+            ],
+            "Resource": "*",
+            "Effect": "Allow"
+        },
+        {
+            "Action": [
+                "ecs:UpdateService"
+            ],
+            "Resource": "arn:aws:ecs:eu-west-1:12345678:service/MyService",
+            "Effect": "Allow"
+        }
+    ]
+}
+```
+
+## Examples
+Local Docker execution example:
 ```
 export AWS_SECRET_ACCESS_KEY=1112233444555667778888
 export AWS_ACCESS_KEY_ID=43543t4t435t43wefsdfsdfsdfsdf
@@ -84,10 +123,11 @@ Resources:
           Environment:
             - Name: SERVICE
               Value: !GetAtt MyService.Name
-            - Name: CLUSTER
-              Value: !Ref MyCluster
-            - Name: AWS_DEFAULT_REGION
-              Value: !Ref AWS::Region
+            # No need to provide these if you are running this on the same cluster as SERVICE 
+            #- Name: CLUSTER
+            #  Value: !Ref MyCluster
+            #- Name: AWS_DEFAULT_REGION
+            #  Value: !Ref AWS::Region
 
 
 ```
