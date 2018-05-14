@@ -55,10 +55,7 @@ if __name__ == "__main__":
 
 	daemon = os.getenv('DAEMON', True)
 	interval = os.getenv('INTERVAL', 30)
-
-	# If CLUSTER is manually set the use that. 
-	# Otherwise get the cluster you are currently running on.
-	cluster = os.getenv('CLUSTER', None) or os.getenv('ECS_CLUSTER', None)
+	cluster = os.getenv('CLUSTER', None)
 	service = os.getenv('SERVICE', None)
 
 	if daemon:
