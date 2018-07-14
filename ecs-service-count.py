@@ -6,72 +6,95 @@ import os
 import requests
 
 
-def ecs_get_metadata(uri='http://172.17.0.1:51678/v1/metadata'):
-	return requests.get(uri).json()
+class ECSServiceUpdate(object):
 
-def ecs_get_identity(uri='http://169.254.169.254/latest/dynamic/instance-identity/document'):
-	return requests.get(uri).json()
+    def __init__(self, cluster, service, region):
 
-def ecs_service_update(cluster, service, region):
+        if not region:
+            boto3.setup_default_session(
+                region_name=self.identity().get('region')
+            )
 
-	if not region:
-		ecs = boto3.setup_default_session(region_name=ecs_get_identity().get('region'))
+        self.service = service
+        self.cluster = cluster or self._metadata().get('Cluster')
+        self.ecs = boto3.client('ecs')
 
-	ecs = boto3.client('ecs')
+    def _metadata(
+        self,
+        uri='http://172.17.0.1:51678/v1/metadata'
+    ):
+        return requests.get(uri).json()
 
-	cluster_response = ecs.describe_clusters(
-	    clusters=[cluster]
-	)['clusters'][0]
+    def _identity(
+        self,
+        uri='http://169.254.169.254/latest/dynamic/instance-identity/document'
+    ):
+        return requests.get(uri).json()
 
-	instance_count = cluster_response.get('registeredContainerInstancesCount')
+    def _cluster_response(self):
+        return self.ecs.describe_clusters(
+            clusters=[self.cluster]
+        )['clusters'][0]
 
-	if not instance_count:
-		logging.error("Could Not Get Instance Count")
-		return False
+    def _service_response(self):
+        return self.ecs.describe_services(
+            cluster=self.cluster,
+            services=[self.service]
+        )['services'][0]
 
-	logging.info("Instance Count: {}".format(instance_count))
+    def update_service(self):
 
-	service_response = ecs.describe_services(
-	    cluster=cluster,
-	    services=[service]
-	)['services'][0]
+        instance_count = self._cluster_response().get(
+            'registeredContainerInstancesCount'
+        )
 
-	service_desired = service_response.get('desiredCount')
-	
-	if not service_desired:
-		logging.error("Could Not Get Service Count")
-		return False
+        if not instance_count:
+            logging.error("Could Not Get Instance Count")
+            return False
 
-	logging.info("Service Count: {}".format(service_desired))
+        logging.info("Instance Count: {}".format(instance_count))
 
-	if service_desired != instance_count:
-		logging.info("Updating Service Count to: {}".format(instance_count))
-		ecs.update_service(
-	    	cluster=cluster,
-	    	service=service,
-	    	desiredCount=instance_count
-		)
+        service_desired = self._service_response().get('desiredCount')
 
-	return True
+        if not service_desired:
+            logging.error("Could Not Get Service Count")
+            return False
+
+        logging.info(
+            "Service Count: {}".format(service_desired)
+        )
+
+        if service_desired != instance_count:
+            logging.info(
+                "Updating Service Count to: {}".format(instance_count)
+            )
+            self.ecs.update_service(
+                cluster=self.cluster,
+                service=self.service,
+                desiredCount=instance_count
+            )
+
+        return True
 
 
 if __name__ == "__main__":
 
-	log_level = os.getenv('LOG_LEVEL', "INFO")
+    log_level = os.getenv('LOG_LEVEL', "INFO")
 
-	logging.basicConfig(level=log_level)
+    logging.basicConfig(level=log_level)
 
-	daemon = os.getenv('DAEMON', True)
-	interval = os.getenv('INTERVAL', 30)
-	region = os.getenv('AWS_DEFAULT_REGION', None)
-	
-	# if CLUSTER not provided get own cluster from metadata
-	cluster = os.getenv('CLUSTER', None) or ecs_get_metadata().get('Cluster')
-	service = os.getenv('SERVICE', None)
+    daemon = os.getenv('DAEMON', True)
+    interval = os.getenv('INTERVAL', 30)
+    region = os.getenv('AWS_DEFAULT_REGION', None)
+    cluster = os.getenv('CLUSTER', None)
+    service = os.getenv('SERVICE', None)
 
-	if daemon:
-		while True:
-			ecs_service_update(cluster, service, region)
-			time.sleep(interval)
-	else:
-		ecs_service_update(cluster, service, region)
+    ecs_service_update = ECSServiceUpdate(cluster, service, region)
+
+    if daemon:
+        logging.info("Running in Daemon mode")
+        while True:
+            ecs_service_update.update_service()
+            time.sleep(interval)
+    else:
+        ecs_service_update.update_service()
