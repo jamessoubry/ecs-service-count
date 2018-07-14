@@ -12,7 +12,7 @@ class ECSServiceUpdate(object):
 
         if not region:
             boto3.setup_default_session(
-                region_name=self.identity().get('region')
+                region_name=self._identity().get('region')
             )
 
         self.service = service
